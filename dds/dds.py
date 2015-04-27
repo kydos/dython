@@ -12,13 +12,19 @@ from org.omg.dds.domain import DomainParticipantFactory
 from org.omg.dds.sub import DataReaderListener  as JDataReaderListener 
 from dython.bit import KDython
 import cPickle
+import sys
+
 # from org.omg.dython.sub import InstanceState
 
 
      
 class Runtime:
     runtimeImpl = None
-    def __init__(self, ddsImpl = "com.prismtech.cafe.core.ServiceEnvironmentImpl"):        
+    def __init__(self, ddsImpl = "com.prismtech.cafe.core.ServiceEnvironmentImpl"):
+        dds = JSystem.getProperty("dds.runtime")
+        if dds == "ospl":
+            ddsImpl = "org.opensplice.dds.core.OsplServiceEnvironment"
+            
         JSystem.setProperty(ServiceEnvironment.IMPLEMENTATION_CLASS_NAME_PROPERTY, 
                             ddsImpl);
         self.env = ServiceEnvironment.createInstance(JThread.currentThread().getContextClassLoader())
@@ -104,7 +110,26 @@ class ReaderListener(JDataReaderListener):
         if self.dr.onSampleLost != None:
             self.dr.onSampleLost(e)
     
-    
+class SampleIterator:    
+    def __init__(self, s):
+        sys.stdout.write("Created Iterator")
+        self.samples = s
+
+    def __iter__(self):
+        return self;
+
+    def __next__(self):
+        if self.samples.hasNext():
+            return self.samples.next()
+        else:
+            raise StopIteration
+
+    def next(self):
+        return self.__next__()
+
+def range(samples):
+    return SampleIterator(samples)
+
 
 class Reader:
     def __init__(self, topic, qos = None, sub = runtime().defaultS):        
